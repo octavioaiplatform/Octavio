@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     def validate_production_secrets(self) -> "Settings":
         if self.environment.lower() == "production" and self.access_token == "local-dev-token":
             raise ValueError("OCTAVIO_ACCESS_TOKEN must be set to a non-development value in production")
+        if self.environment.lower() == "production" and (not self.openai_api_key or not self.openai_realtime_model):
+            raise ValueError("OPENAI_API_KEY and OPENAI_REALTIME_MODEL must be set in production")
         return self
 
 
