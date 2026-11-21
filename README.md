@@ -29,11 +29,11 @@ Requiere Python 3.12 o posterior compatible.
 Configuración rápida desde PowerShell:
 
 ```powershell
-.scriptssetup.ps1
-.scriptsstart-backend.ps1
+ ./scripts/setup.ps1
+ ./scripts/start-backend.ps1
 ```
 
-En otra terminal, comprueba el servicio con `.scriptshealth-check.ps1`.
+En otra terminal, comprueba el servicio con `./scripts/health-check.ps1`.
 
 Configuración manual:
 
