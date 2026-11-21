@@ -15,4 +15,7 @@ services:
         value: INFO
       - key: OCTAVIO_ACCESS_TOKEN
         generateValue: true
-
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_REALTIME_MODEL
+        value: gpt-realtime-2.1
