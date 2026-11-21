@@ -1,0 +1,1 @@
+"""Controlled game context assembly."""

@@ -1,0 +1,1 @@
+"""Character configuration and lookup."""
