@@ -1,0 +1,27 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+coverage.xml
+htmlcov/
+
+# Unreal generated files
+Binaries/
+DerivedDataCache/
+Intermediate/
+Saved/
+*.sln
+*.suo
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
