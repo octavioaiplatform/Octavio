@@ -15,7 +15,4 @@ services:
         value: INFO
       - key: OCTAVIO_ACCESS_TOKEN
         generateValue: true
-      - key: OPENAI_API_KEY
-        sync: false
-      - key: OPENAI_REALTIME_MODEL
-        sync: false
+
