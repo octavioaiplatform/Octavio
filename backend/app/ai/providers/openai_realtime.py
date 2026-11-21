@@ -34,6 +34,7 @@ class OpenAIRealtimeProvider(AIProvider):
             "type": "session.update",
             "session": {
                 "type": "realtime",
+                "model": self.settings.openai_realtime_model,
                 "instructions": instructions,
                 "output_modalities": ["audio"],
                 "audio": {
@@ -74,3 +75,4 @@ class OpenAIRealtimeProvider(AIProvider):
         if self._socket is not None:
             await self._socket.close()
             self._socket = None
+
