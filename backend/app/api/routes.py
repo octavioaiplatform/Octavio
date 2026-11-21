@@ -1,5 +1,6 @@
 import base64
 import binascii
+import asyncio
 import logging
 import secrets
 from typing import Any
@@ -7,7 +8,8 @@ from typing import Any
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from pydantic import ValidationError
 
-from app.ai.providers.mock import MockAIProvider
+from app.ai.interfaces.provider import AIProvider
+from app.ai.providers.openai_realtime import OpenAIRealtimeProvider
 from app.characters.manager import CharacterManager
 from app.context.manager import ContextManager
 from app.core.config import Settings, get_settings
@@ -55,7 +57,8 @@ async def websocket_endpoint(websocket: WebSocket, settings: Settings = Depends(
         return
     await websocket.accept()
     session_id: str | None = None
-    provider: MockAIProvider | None = None
+    provider: AIProvider | None = None
+    provider_task: asyncio.Task[None] | None = None
     try:
         while True:
             if websocket.client_state.name != "CONNECTED":
@@ -92,11 +95,12 @@ async def websocket_endpoint(websocket: WebSocket, settings: Settings = Depends(
                     await _send(websocket, make_event("error", None, code="capacity_reached", message="Session capacity reached"))
                     continue
                 session_id = session.id
-                await _send(websocket, make_event("session.created", session_id, character_id=character.id))
-                provider = MockAIProvider()
                 context = contexts.build(character.id)
+                provider = OpenAIRealtimeProvider(settings, session_id, character.voice)
                 await provider.connect(character.instructions, context)
-                await _send(websocket, make_event("session.ready", session_id, character_id=character.id, provider="mock"))
+                await _send(websocket, make_event("session.created", session_id, character_id=character.id))
+                provider_task = asyncio.create_task(_forward_provider_events(websocket, provider))
+                await _send(websocket, make_event("session.ready", session_id, character_id=character.id, provider="openai_realtime", model=settings.openai_realtime_model))
                 continue
 
             if session_id is None:
@@ -106,11 +110,14 @@ async def websocket_endpoint(websocket: WebSocket, settings: Settings = Depends(
             current_session = manager.get(session_id)
             if event.type == "session.end":
                 if provider:
+                    if provider_task:
+                        provider_task.cancel()
                     await provider.close()
                 manager.remove(session_id)
                 await _send(websocket, make_event("session.ended", session_id))
                 session_id = None
                 provider = None
+                provider_task = None
             elif event.type == "player.context.update" and current_session:
                 current_session.context = contexts.build(current_session.character_id, event.payload)
                 await _send(websocket, make_event("player.context.updated", session_id))
@@ -132,6 +139,8 @@ async def websocket_endpoint(websocket: WebSocket, settings: Settings = Depends(
         except Exception:
             pass
     finally:
+        if provider_task:
+            provider_task.cancel()
         if provider:
             await provider.close()
         if session_id:
@@ -144,7 +153,7 @@ def _optional_str(value: Any) -> str | None:
     return str(value)[:128]
 
 
-async def _handle_audio_input(websocket: WebSocket, event: OctavioEvent, session_id: str, provider: MockAIProvider | None, settings: Settings) -> None:
+async def _handle_audio_input(websocket: WebSocket, event: OctavioEvent, session_id: str, provider: AIProvider | None, settings: Settings) -> None:
     payload = event.payload
     audio_b64 = payload.get("audio_b64")
     sequence = payload.get("sequence")
@@ -163,4 +172,17 @@ async def _handle_audio_input(websocket: WebSocket, event: OctavioEvent, session
         await _send(websocket, make_event("error", session_id, code="provider_unavailable", message="AI provider is not ready"))
         return
     await provider.send_audio(audio_b64, sequence)
-    await _send(websocket, make_event("speech.detected", session_id, sequence=sequence, transport="mock"))
+
+
+async def _forward_provider_events(websocket: WebSocket, provider: AIProvider) -> None:
+    try:
+        async for event in provider.receive_events():
+            await _send(websocket, event)
+    except asyncio.CancelledError:
+        raise
+    except Exception:
+        logger.exception("OpenAI Realtime event stream failed")
+        try:
+            await _send(websocket, make_event("error", code="provider_stream_failed", message="OpenAI Realtime connection failed"))
+        except Exception:
+            pass
