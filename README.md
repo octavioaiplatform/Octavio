@@ -4,9 +4,9 @@ OCTAVIO conecta un cliente de videojuego con personajes de IA por voz. La arquit
 
 ## Estado
 
-El repositorio parte vacío. Esta primera base incluye el backend FastAPI, un protocolo WebSocket versionable, el personaje Marcos y un proveedor simulado para desarrollo local. El proveedor simulado sirve para comprobar el flujo de eventos; no reconoce voz ni genera audio real.
+La primera versión incluye el backend FastAPI, un protocolo WebSocket versionable, el personaje Marcos y conexión de servidor a servidor con OpenAI Realtime. Render debe guardar la clave secreta; Unreal nunca recibe la clave de OpenAI.
 
-La integración de OpenAI Realtime y el proyecto ejecutable de Unreal se añadirán después de validar la documentación vigente y el entorno Unreal instalado. No se incluyen claves ni datos privados.
+El proyecto ejecutable de Unreal se añadirá después de validar el entorno Unreal instalado. No se incluyen claves ni datos privados.
 
 ## Arquitectura
 
@@ -15,7 +15,7 @@ Unreal Engine 5 (cliente 3D)
         │ WSS en producción / WS local
         ▼
 Backend FastAPI en Render
-        │ interfaz AIProvider
+        │ WebSocket seguro de OpenAI Realtime
         ▼
 OpenAI Realtime (fase posterior)
 ```
@@ -52,7 +52,7 @@ Para WebSocket local, usa `ws://127.0.0.1:8000/ws` con `Authorization: Bearer lo
 
 ## Render
 
-El archivo `render.yaml` define el servicio web y la comprobación de salud. Configura `OCTAVIO_ACCESS_TOKEN`, `OPENAI_API_KEY` y `OPENAI_REALTIME_MODEL` en el panel de Render cuando se implemente la integración correspondiente. No uses el token local en un despliegue público.
+El archivo `render.yaml` define el servicio web y la comprobación de salud. Render genera `OCTAVIO_ACCESS_TOKEN`; añade `OPENAI_API_KEY` como secreto y usa `OPENAI_REALTIME_MODEL=gpt-realtime-2.1`. El audio entrante debe ser PCM mono a 24 kHz. No uses el token local en un despliegue público.
 
 ## Protocolo
 

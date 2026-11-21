@@ -29,17 +29,13 @@ def test_websocket_session_lifecycle(client):
         assert created["type"] == "session.created"
         assert created["session_id"]
         assert ready["type"] == "session.ready"
-        assert ready["payload"]["provider"] == "mock"
+        assert ready["payload"]["provider"] == "openai_realtime"
 
         websocket.send_json(event("npc.interaction.start"))
         assert websocket.receive_json()["type"] == "conversation.started"
 
         audio = base64.b64encode(b"mock-audio").decode("ascii")
         websocket.send_json(event("audio.input", {"audio_b64": audio, "sequence": 0}))
-        speech = websocket.receive_json()
-        assert speech["type"] == "speech.detected"
-        assert speech["payload"]["transport"] == "mock"
-
         websocket.send_json(event("session.end"))
         assert websocket.receive_json()["type"] == "session.ended"
 
